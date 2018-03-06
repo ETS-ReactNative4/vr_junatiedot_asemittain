@@ -1,0 +1,72 @@
+.App {
+  text-align: left;
+}
+
+.App-header {
+  background-color: green;
+  height: 50px;
+  padding: 10px;
+  color: white;
+}
+.TrainRow{
+  clear: both;
+  display: table;
+  width: 600px;
+  text-align: left;
+  padding: 6px;
+}
+.Train{
+  float: left;
+  width: 150px;
+  text-align: center;
+}
+.Start{
+  float: left;
+  width: 150px;
+  text-align: center;
+}
+.End{
+  float: left;
+  width: 150px;
+  text-align: center;
+}
+.Time{
+  float: left;
+  width: 150px;
+  text-align: center;
+}
+.Suggestionbox {
+  clear: both;
+  background: #fff;
+  border: 1px solid #999;
+  float: left;
+  font-size: 24px;
+  line-height: 34px;
+  margin-right: -1px;
+  margin-top: -1px;
+  padding: 0;
+  text-align: left;
+  width: 204px;
+  height: 34px;
+}
+
+.App-intro {
+  font-size: large;
+}
+
+.SearchBar {
+  padding: 100px;
+  font-size: large;
+  margin-top: auto;
+}
+.Search-Bar {
+  padding: 10px;
+}
+
+.SearchBox {
+  border: 3px solid #999;
+  font-size: 24px;
+  text-align: left;
+  width: 200px;
+  height: 34px;
+}
