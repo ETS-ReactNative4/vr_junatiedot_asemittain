@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import './App.css';
 
+
+
 class App extends Component {
   render() {
     return (
@@ -18,12 +20,8 @@ class App extends Component {
 function ShowSuggestion(props){
 
   if ( props.value !== null ){
-    return(
-          <button className="Suggestionbox" onClick={props.onClick}>
-            {props.value.stationName}
-          </button>
-
-    );
+    return(<button className="Suggestionbox" onClick={props.onClick}>
+          {props.value.stationName} </button>);
   }else{
     return(
       <div></div>
@@ -78,10 +76,10 @@ class SearchBar extends React.Component{
     this.state = {
       suggestions: Array(10).fill(null),
       stations: {},
+      stationsshortcodetoname: {},
       isCitySelected: false,
       stationTrainsArrival: {},
       stationTrainsDeparture: {},
-
     }
   }
   componentDidMount(){
@@ -89,12 +87,15 @@ class SearchBar extends React.Component{
     .then( results => results.json() )
     .then( data => {
       var stationswPassengers = [];
+      var stationnameshorttofull = {};
       data.forEach(function(element){
         if (element.passengerTraffic !== false){
           stationswPassengers.push(element);
+          stationnameshorttofull[element.stationShortCode] = element.stationName;
         }
       });
-      this.setState({ stations: stationswPassengers })
+      this.setState({ stations: stationswPassengers,
+                    stationsshortcodetoname: stationnameshorttofull, })
     });
   }
 
@@ -170,16 +171,48 @@ class SearchBar extends React.Component{
 
 
     var istationShortCode = this.state.suggestions[i].stationShortCode;
+    var codetoname = this.state.stationsshortcodetoname;
 
-    var url = "https://rata.digitraffic.fi/api/v1/trains/"+ d.getFullYear().toString()+ "-" +str_month + "-" + str_day;
-    fetch(url).then(response => response.json())
-    .then(data => {
+    //var url = "https://rata.digitraffic.fi/api/v1/trains/"+ d.getFullYear().toString()+ "-" +str_month + "-" + str_day;
+    var url = "https://rata.digitraffic.fi/api/v1/live-trains/station/" + istationShortCode + "?arriving_trains=10&departing_trains=10&include_nonstopping=false";
+    console.log(url);
+    fetch(url).then(response => response.json()).then(data => {
       var thisStationTrains = [];
       var thisStationTrainsDeparture = [];
+      var timeminus2h = new Date();
       var d = new Date();
-      d.Hours = d.getHours() + 2;
 
+      //console.log(d);
+      console.log(data);
+      console.log(codetoname);
       data.forEach(function(element){
+
+        var timeTableRows = element.timeTableRows;
+        var train = "";
+
+        timeTableRows.forEach(function(station_stats){
+          var a = new Date();
+          if ( station_stats.liveEstimateTime == undefined){
+            a = new Date(station_stats.scheduledTime);
+          }else{
+            a = new Date(station_stats.liveEstimateTime);
+          };
+
+          if ( station_stats.stationShortCode === istationShortCode && a.getTime() > d.getTime() && station_stats.commercialStop == true){
+
+            if ( station_stats.type === "ARRIVAL"){
+              train = element.trainType + " " + element.trainNumber;
+              thisStationTrains.push({"scheduledTime": a, "train": train, "startingStation": codetoname[timeTableRows[0].stationShortCode], "endingStation": codetoname[timeTableRows[ timeTableRows.length -1 ].stationShortCode]} );
+            }
+            if ( station_stats.type === "DEPARTURE" ){
+              train = element.trainType + " " + element.trainNumber;
+              thisStationTrainsDeparture.push({"scheduledTime": a, "train": train, "startingStation": codetoname[timeTableRows[0].stationShortCode], "endingStation": codetoname[timeTableRows[ timeTableRows.length -1 ].stationShortCode]});
+            }
+          }
+        })
+
+      });
+      /*data.forEach(function(element){
         var timeTableRows = element.timeTableRows;
         var train = "";
         timeTableRows.forEach(function(station_stats){
@@ -187,7 +220,7 @@ class SearchBar extends React.Component{
           if ( station_stats.stationShortCode === istationShortCode && d < a){
             if ( station_stats.type === "ARRIVAL"){
               train = element.trainType + " " + element.trainNumber;
-              thisStationTrains.push({"scheduledTime": station_stats.scheduledTime, "train": train, "startingStation": timeTableRows[0].stationShortCode, "endingStation": timeTableRows[ timeTableRows.length -1 ].stationShortCode});
+              thisStationTrains.push({"scheduledTime": station_stats.scheduledTime, "train": train, "startingStation": timeTableRows[0].hortCode, "endingStation": timeTableRows[ timeTableRows.length -1 ].stationShortCode});
             }
             if ( station_stats.type === "DEPARTURE"){
               train = element.trainType + " " + element.trainNumber;
@@ -196,16 +229,16 @@ class SearchBar extends React.Component{
           }
         })
 
-      })
+      })*/
       function compare(a,b){
         if ( a.scheduledTime < b.scheduledTime){
           return -1;
-        }
+        };
         if (a.scheduledTime > b.scheduledTime){
           return 1;
-        }
-        return 0
-      }
+        };
+        return 0;
+      };
       thisStationTrains.sort(compare);
       thisStationTrains.splice(10,thisStationTrains.length - 1);
       thisStationTrainsDeparture.sort(compare);
