@@ -1,5 +1,10 @@
 import React, { Component } from 'react';
+import { render } from 'react-dom';
 import './App.css';
+import { Container } from "react-bootstrap";
+import { Row } from "react-bootstrap";
+import { Col } from "react-bootstrap";
+const xhr = new XMLHttpRequest();
 
 
 
@@ -40,20 +45,12 @@ function ShowTrains(props){
       minutes = d.getMinutes();
     }
     return(
-          <div className="TrainRow">
-            <div className="Train">
-            {props.value.train}
-            </div>
-            <div className="Start">
-            {props.value.startingStation}
-            </div>
-            <div className="End">
-            {props.value.endingStation}
-            </div>
-            <div className="Time">
-            {d.getHours() + ":" + minutes}
-            </div>
-          </div>
+      <Container className="flex-container">
+        <Col className="flex-item">{props.value.train}</Col>
+        <Col className="flex-item">{props.value.startingStation}</Col>
+        <Col className="flex-item">{props.value.endingStation}</Col>
+        <Col className="flex-item">{d.getHours() + ":" + minutes}</Col>
+      </Container>
 
     );
   }else{
@@ -62,8 +59,6 @@ function ShowTrains(props){
     );
   }
 }
-
-
 
 
 
@@ -82,6 +77,7 @@ class SearchBar extends React.Component{
       stationTrainsDeparture: {},
     }
   }
+
   componentDidMount(){
     fetch("https://rata.digitraffic.fi/api/v1/metadata/stations")
     .then( results => results.json() )
@@ -89,10 +85,13 @@ class SearchBar extends React.Component{
       var stationswPassengers = [];
       var stationnameshorttofull = {};
       data.forEach(function(element){
+
+        stationnameshorttofull[element.stationShortCode] = element.stationName;
+
         if (element.passengerTraffic !== false){
           stationswPassengers.push(element);
-          stationnameshorttofull[element.stationShortCode] = element.stationName;
         }
+
       });
       this.setState({ stations: stationswPassengers,
                     stationsshortcodetoname: stationnameshorttofull, })
@@ -148,106 +147,104 @@ class SearchBar extends React.Component{
   }
 
 
-  postData( i ){
-
-
-    var d = new Date();
-    var month = d.getMonth() + 1;
-    var day = d.getDate();
-    var str_month = "";
-    var str_day = "";
-
-    if ( month < 10 ){
-      str_month = "0" + month.toString();
-    }else{
-      str_month = month.toString();
-    }
-
-    if ( month < 10 ){
-      str_day = "0" + day.toString();
-    }else{
-      str_day = day.toString();
-    }
-
+  getArrivingAndDeparting( i ){
 
     var istationShortCode = this.state.suggestions[i].stationShortCode;
     var codetoname = this.state.stationsshortcodetoname;
 
-    //var url = "https://rata.digitraffic.fi/api/v1/trains/"+ d.getFullYear().toString()+ "-" +str_month + "-" + str_day;
-    var url = "https://rata.digitraffic.fi/api/v1/live-trains/station/" + istationShortCode + "?arriving_trains=10&departing_trains=10&include_nonstopping=false";
-    console.log(url);
-    fetch(url).then(response => response.json()).then(data => {
-      var thisStationTrains = [];
-      var thisStationTrainsDeparture = [];
-      var timeminus2h = new Date();
-      var d = new Date();
+    var jsonrequest = {"query":"{ viewer { \
+          getStationsTrainsUsingGET(station:\"" + istationShortCode + "\", arriving_trains:20, departing_trains:20, include_nonstopping:false) { \
+            trainNumber \
+            trainType \
+            timeTableRows { \
+              actualTime \
+              differenceInMinutes \
+              liveEstimateTime \
+              scheduledTime \
+              stationShortCode \
+              type \
+            } \
+          } \
+        } \
+      }"};
 
-      //console.log(d);
-      console.log(data);
-      console.log(codetoname);
-      data.forEach(function(element){
+    jsonrequest = JSON.stringify(jsonrequest);
+    const graphql_url = "https://rata.digitraffic.fi/api/v1/graphql/graphiql/?";
+    xhr.open('POST', graphql_url, false);
+    xhr.setRequestHeader("Content-Type", "application/json");
 
-        var timeTableRows = element.timeTableRows;
-        var train = "";
+    var thisStationTrains = [];
+    var thisStationTrainsDeparture = [];
+    var d = new Date();
+    var a = new Date();
 
-        timeTableRows.forEach(function(station_stats){
-          var a = new Date();
-          if ( station_stats.liveEstimateTime == undefined){
-            a = new Date(station_stats.scheduledTime);
-          }else{
-            a = new Date(station_stats.liveEstimateTime);
+    xhr.onreadystatechange = function() {
+
+      if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+
+        var responsetrains = JSON.parse(this.responseText);
+
+        responsetrains.data.viewer.getStationsTrainsUsingGET.forEach(function(element){
+
+            var timeTableRows = element.timeTableRows;
+
+            timeTableRows.forEach(function(station_stats){
+
+              if ( station_stats.liveEstimateTime == undefined){
+                a = new Date(station_stats.scheduledTime);
+              }else{
+                a = new Date(station_stats.liveEstimateTime);
+              };
+
+              if ( station_stats.stationShortCode === istationShortCode &&
+
+                a.getTime() > d.getTime()){
+
+                if ( station_stats.type === "ARRIVAL"){
+
+                  thisStationTrains.push({"scheduledTime": a,
+                    "train": element.trainType + " " + element.trainNumber,
+                    "startingStation": codetoname[timeTableRows[0].stationShortCode],
+                    "endingStation": codetoname[timeTableRows[ timeTableRows.length -1 ].stationShortCode]} );
+
+                }
+
+                if ( station_stats.type === "DEPARTURE" ){
+
+                  thisStationTrainsDeparture.push({"scheduledTime": a,
+                    "train": element.trainType + " " + element.trainNumber,
+                    "startingStation": codetoname[timeTableRows[0].stationShortCode],
+                    "endingStation": codetoname[timeTableRows[ timeTableRows.length -1 ].stationShortCode]});
+                }
+
+              }
+
+            })
+
+          });
+
+          function compare(a,b){
+            if ( a.scheduledTime < b.scheduledTime){
+              return -1;
+            };
+            if (a.scheduledTime > b.scheduledTime){
+              return 1;
+            };
+            return 0;
           };
 
-          if ( station_stats.stationShortCode === istationShortCode && a.getTime() > d.getTime() && station_stats.commercialStop == true){
+          thisStationTrains.sort(compare);
+          thisStationTrains.splice(10,thisStationTrains.length - 1);
+          thisStationTrainsDeparture.sort(compare);
+          thisStationTrainsDeparture.splice(10,thisStationTrainsDeparture.length - 1);
 
-            if ( station_stats.type === "ARRIVAL"){
-              train = element.trainType + " " + element.trainNumber;
-              thisStationTrains.push({"scheduledTime": a, "train": train, "startingStation": codetoname[timeTableRows[0].stationShortCode], "endingStation": codetoname[timeTableRows[ timeTableRows.length -1 ].stationShortCode]} );
-            }
-            if ( station_stats.type === "DEPARTURE" ){
-              train = element.trainType + " " + element.trainNumber;
-              thisStationTrainsDeparture.push({"scheduledTime": a, "train": train, "startingStation": codetoname[timeTableRows[0].stationShortCode], "endingStation": codetoname[timeTableRows[ timeTableRows.length -1 ].stationShortCode]});
-            }
-          }
-        })
-
-      });
-      /*data.forEach(function(element){
-        var timeTableRows = element.timeTableRows;
-        var train = "";
-        timeTableRows.forEach(function(station_stats){
-          var a = new Date(station_stats.scheduledTime);
-          if ( station_stats.stationShortCode === istationShortCode && d < a){
-            if ( station_stats.type === "ARRIVAL"){
-              train = element.trainType + " " + element.trainNumber;
-              thisStationTrains.push({"scheduledTime": station_stats.scheduledTime, "train": train, "startingStation": timeTableRows[0].hortCode, "endingStation": timeTableRows[ timeTableRows.length -1 ].stationShortCode});
-            }
-            if ( station_stats.type === "DEPARTURE"){
-              train = element.trainType + " " + element.trainNumber;
-              thisStationTrainsDeparture.push({"scheduledTime": station_stats.scheduledTime, "train": train, "startingStation": timeTableRows[0].stationShortCode, "endingStation": timeTableRows[ timeTableRows.length -1 ].stationShortCode});
-            }
-          }
-        })
-
-      })*/
-      function compare(a,b){
-        if ( a.scheduledTime < b.scheduledTime){
-          return -1;
-        };
-        if (a.scheduledTime > b.scheduledTime){
-          return 1;
-        };
-        return 0;
       };
-      thisStationTrains.sort(compare);
-      thisStationTrains.splice(10,thisStationTrains.length - 1);
-      thisStationTrainsDeparture.sort(compare);
-      thisStationTrainsDeparture.splice(10,thisStationTrainsDeparture.length - 1);
+    };
 
-      this.setState({
-        stationTrainsArrival: thisStationTrains,
-        stationTrainsDeparture: thisStationTrainsDeparture
-      })
+    xhr.send(jsonrequest);
+    this.setState({
+      stationTrainsArrival: thisStationTrains,
+      stationTrainsDeparture: thisStationTrainsDeparture
     });
 
 
@@ -259,7 +256,7 @@ class SearchBar extends React.Component{
       this.filterTextInput.value = this.state.suggestions[i].stationName;
     }
 
-    this.postData(i);
+    this.getArrivingAndDeparting(i);
     this.setState({
       suggestions: Array(10).fill(null),
       isCitySelected: true
@@ -268,7 +265,7 @@ class SearchBar extends React.Component{
   }
 
   render() {
-    const suggestions = this.state.suggestions.slice()
+
     return(
 
       <div className = "Search-Bar" >
@@ -284,7 +281,7 @@ class SearchBar extends React.Component{
           </form>
         </div>
 
-        <div>
+        <div className="suggestions">
             {this.rendersuggestion(0)}
             {this.rendersuggestion(1)}
             {this.rendersuggestion(2)}
@@ -296,20 +293,32 @@ class SearchBar extends React.Component{
             {this.rendersuggestion(8)}
             {this.rendersuggestion(9)}
           </div>
-          <div>Saapuvat</div>
-          <div>
-            {this.renderArrival(0)}
-            {this.renderArrival(1)}
-            {this.renderArrival(2)}
-            {this.renderArrival(3)}
-            {this.renderArrival(4)}
-            {this.renderArrival(5)}
-            {this.renderArrival(6)}
-            {this.renderArrival(7)}
-            {this.renderArrival(8)}
-            {this.renderArrival(9)}
+
+          <div className = "flex-container">
+              <div className = "timetableheader">Saapuvat</div>
+              <div className = "flex-info">Juna</div>
+              <div className = "flex-info">Lähtöasema</div>
+              <div className = "flex-info">Pääteasema</div>
+              <div className = "flex-info">Aika</div>
           </div>
-          <div>Lähtevät</div>
+          {this.renderArrival(0)}
+          {this.renderArrival(1)}
+          {this.renderArrival(2)}
+          {this.renderArrival(3)}
+          {this.renderArrival(4)}
+          {this.renderArrival(5)}
+          {this.renderArrival(6)}
+          {this.renderArrival(7)}
+          {this.renderArrival(8)}
+          {this.renderArrival(9)}
+
+          <div className = "flex-container">
+            <div className = "timetableheader">Lähtevät</div>
+            <div className = "flex-info">Juna</div>
+            <div className = "flex-info">Lähtöasema</div>
+            <div className = "flex-info">Pääteasema</div>
+            <div className = "flex-info">Aika</div>
+          </div>
           <div>
             {this.renderDeparture(0)}
             {this.renderDeparture(1)}

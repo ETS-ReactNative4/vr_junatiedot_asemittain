@@ -2,6 +2,45 @@
   text-align: left;
 }
 
+.flex-container {
+  display: flex;
+  flex-wrap: wrap;
+  width: 800px;
+  padding: 5px;
+}
+
+.flex-item {
+  background: gainsboro;
+  width: 150px;
+  padding: 10px;
+  margin-right: 10px;
+  font-size: 15px;
+  text-align: center;
+}
+
+.flex-info {
+  width: 150px;
+  padding: 10px;
+  margin-right: 10px;
+  font-size: 20px;
+  text-align: center;
+  text-decoration: underline;
+}
+
+.timetableheader {
+  background-color: green;
+  text-align: center;
+  width: 700px;
+  padding: 5px;
+  font-size: 25px;
+  font-weight: bold;
+  color: white;
+}
+
+.suggestions {
+  position: absolute;
+}
+
 .App-header {
   background-color: green;
   height: 50px;
