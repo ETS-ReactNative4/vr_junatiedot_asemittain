@@ -4,6 +4,8 @@ import './App.css';
 import { Container } from "react-bootstrap";
 import { Row } from "react-bootstrap";
 import { Col } from "react-bootstrap";
+import { Table } from "react-bootstrap";
+
 const xhr = new XMLHttpRequest();
 
 
@@ -20,6 +22,7 @@ class App extends Component {
     );
   }
 }
+
 
 
 function ShowSuggestion(props){
@@ -45,17 +48,16 @@ function ShowTrains(props){
       minutes = d.getMinutes();
     }
     return(
-      <Container className="flex-container">
-        <Col className="flex-item">{props.value.train}</Col>
-        <Col className="flex-item">{props.value.startingStation}</Col>
-        <Col className="flex-item">{props.value.endingStation}</Col>
-        <Col className="flex-item">{d.getHours() + ":" + minutes}</Col>
-      </Container>
-
+      <tr>
+        <td>{props.value.train}</td>
+        <td>{props.value.startingStation}</td>
+        <td>{props.value.endingStation}</td>
+        <td>{d.getHours() + ":" + minutes}</td>
+      </tr>
     );
   }else{
     return(
-      <div></div>
+      <tr></tr>
     );
   }
 }
@@ -124,16 +126,37 @@ class SearchBar extends React.Component{
 
   }
 
+  rendersuggestion(){
+    var suggestionbuttons = [];
+    for ( var i = 0; i < 10; i++){
 
-  rendersuggestion(i){
-    return(<ShowSuggestion
-            value = {this.state.suggestions[i]}
-            onClick={() => this.handleClick(i)}
-            />
-        );
-  }
+      suggestionbuttons.push(<ShowSuggestion
+              value = {this.state.suggestions[i]}
+              onClick={() => this.handleClick(i)}
+              />);
+    };
+    return(suggestionbuttons);
+  };
 
-  renderArrival(i){
+  rendertrainschedules(type){
+    var trainstoshow = [];
+    var trains = [];
+
+    if ( type == "ar"){
+      trains = this.state.stationTrainsArrival;
+    }else{
+      trains = this.state.stationTrainsDeparture
+    }
+    for ( var i = 0; i < 10; i++){
+      trainstoshow.push(<ShowTrains
+        value = {trains[i]}
+      />);
+    };
+    return trainstoshow;
+  };
+
+  /*renderArrival(i){
+
     return(<ShowTrains
             value = {this.state.stationTrainsArrival[i]}
             />
@@ -144,7 +167,7 @@ class SearchBar extends React.Component{
             value = {this.state.stationTrainsDeparture[i]}
             />
         );
-  }
+  }*/
 
 
   getArrivingAndDeparting( i ){
@@ -267,71 +290,52 @@ class SearchBar extends React.Component{
   render() {
 
     return(
-
-      <div className = "Search-Bar" >
-        <div>
-          <form onChange = { this.handleChange }>
-            <input
-              className = "SearchBox"
-              placeholder = "Etsi asema"
-              type = "text"
-              name = "textsearch"
-              ref = {node => (this.filterTextInput = node)}
-              />
-          </form>
-        </div>
-
-        <div className="suggestions">
-            {this.rendersuggestion(0)}
-            {this.rendersuggestion(1)}
-            {this.rendersuggestion(2)}
-            {this.rendersuggestion(3)}
-            {this.rendersuggestion(4)}
-            {this.rendersuggestion(5)}
-            {this.rendersuggestion(6)}
-            {this.rendersuggestion(7)}
-            {this.rendersuggestion(8)}
-            {this.rendersuggestion(9)}
-          </div>
-
-          <div className = "flex-container">
-              <div className = "timetableheader">Saapuvat</div>
-              <div className = "flex-info">Juna</div>
-              <div className = "flex-info">Lähtöasema</div>
-              <div className = "flex-info">Pääteasema</div>
-              <div className = "flex-info">Aika</div>
-          </div>
-          {this.renderArrival(0)}
-          {this.renderArrival(1)}
-          {this.renderArrival(2)}
-          {this.renderArrival(3)}
-          {this.renderArrival(4)}
-          {this.renderArrival(5)}
-          {this.renderArrival(6)}
-          {this.renderArrival(7)}
-          {this.renderArrival(8)}
-          {this.renderArrival(9)}
-
-          <div className = "flex-container">
-            <div className = "timetableheader">Lähtevät</div>
-            <div className = "flex-info">Juna</div>
-            <div className = "flex-info">Lähtöasema</div>
-            <div className = "flex-info">Pääteasema</div>
-            <div className = "flex-info">Aika</div>
-          </div>
+      <div>
+        <div className = "Search-Bar" >
           <div>
-            {this.renderDeparture(0)}
-            {this.renderDeparture(1)}
-            {this.renderDeparture(2)}
-            {this.renderDeparture(3)}
-            {this.renderDeparture(4)}
-            {this.renderDeparture(5)}
-            {this.renderDeparture(6)}
-            {this.renderDeparture(7)}
-            {this.renderDeparture(8)}
-            {this.renderDeparture(9)}
+            <form onChange = { this.handleChange }>
+              <input
+                className = "SearchBox"
+                placeholder = "Etsi asema"
+                type = "text"
+                name = "textsearch"
+                ref = {node => (this.filterTextInput = node)}
+                />
+            </form>
           </div>
         </div>
+        <div className="suggestions">
+              {this.rendersuggestion()}
+        </div>
+
+        <Table striped bordered hover>
+              <thead>
+                <tr>
+                  <th>Juna</th>
+                  <th>Lähtöasema</th>
+                  <th>Pääteasema</th>
+                  <th>Aika</th>
+                </tr>
+              </thead>
+              <tbody>
+                {this.rendertrainschedules("ar")}
+              </tbody>
+            </Table>
+            <Table  striped bordered hover>
+              <thead>
+                <tr>
+                  <th>Juna</th>
+                  <th>Lähtöasema</th>
+                  <th>Pääteasema</th>
+                  <th>Aika</th>
+                </tr>
+              </thead>
+              <tbody>
+                {this.rendertrainschedules("de")}
+              </tbody>
+            </Table>
+        </div>
+
     )
   }
 };

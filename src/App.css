@@ -37,6 +37,10 @@
   color: white;
 }
 
+.schedules {
+  bordered: true;
+}
+
 .suggestions {
   position: absolute;
 }
@@ -93,11 +97,7 @@
   font-size: large;
 }
 
-.SearchBar {
-  padding: 100px;
-  font-size: large;
-  margin-top: auto;
-}
+
 .Search-Bar {
   padding: 10px;
 }
