@@ -1,10 +1,9 @@
 import React, { Component } from 'react';
-import { render } from 'react-dom';
 import './App.css';
-import { Container } from "react-bootstrap";
-import { Row } from "react-bootstrap";
-import { Col } from "react-bootstrap";
 import { Table } from "react-bootstrap";
+import { Button } from "react-bootstrap";
+import { ButtonGroup } from "react-bootstrap";
+import { Form } from "react-bootstrap";
 
 const xhr = new XMLHttpRequest();
 
@@ -15,7 +14,7 @@ class App extends Component {
     return (
       <div className="App">
         <header className="App-header">
-          <h1 className="App-title">Aseman junatiedot</h1>
+          <h1>Aseman junatiedot</h1>
         </header>
         <SearchBar/>
       </div>
@@ -24,22 +23,10 @@ class App extends Component {
 }
 
 
-
-function ShowSuggestion(props){
-
-  if ( props.value !== null ){
-    return(<button className="Suggestionbox" onClick={props.onClick}>
-          {props.value.stationName} </button>);
-  }else{
-    return(
-      <div></div>
-    );
-  }
-}
-
 function ShowTrains(props){
 
   if ( props.value !== undefined ){
+
     var d = new Date(props.value.scheduledTime)
     var minutes = "";
     if ( d.getMinutes() < 10 ){
@@ -47,6 +34,7 @@ function ShowTrains(props){
     }else{
       minutes = d.getMinutes();
     }
+
     return(
       <tr>
         <td>{props.value.train}</td>
@@ -60,7 +48,7 @@ function ShowTrains(props){
       <tr></tr>
     );
   }
-}
+};
 
 
 
@@ -71,10 +59,11 @@ class SearchBar extends React.Component{
 
     this.handleChange = this.handleChange.bind(this);
     this.state = {
-      suggestions: Array(10).fill(null),
+      suggestions: [],
+      suggestionnames: [],
       stations: {},
       stationsshortcodetoname: {},
-      isCitySelected: false,
+      selectedCity: "Station not selected.",
       stationTrainsArrival: {},
       stationTrainsDeparture: {},
     }
@@ -105,8 +94,12 @@ class SearchBar extends React.Component{
 
   handleChange(text){
     text.preventDefault();
-    this.setState({ suggestions: Array(10).fill(null) });
-    var suggestions = this.state.suggestions.slice();
+    this.setState({ suggestions: [],
+                    suggestionnames: []
+                  });
+
+    var suggestions = [];
+    var suggestionnames = [];
     var user_input = this.filterTextInput.value;
     var i = 0;
 
@@ -115,12 +108,14 @@ class SearchBar extends React.Component{
 
         if (station.stationName.toLowerCase().indexOf(user_input.toLowerCase()) === 0) {
           suggestions[i] = station;
+          suggestionnames[i] = station.stationName;
           ++i;
         }
       });
 
       this.setState({
-        suggestions: suggestions
+        suggestions: suggestions,
+        suggestionnames: suggestionnames
       });
     }
 
@@ -128,13 +123,15 @@ class SearchBar extends React.Component{
 
   rendersuggestion(){
     var suggestionbuttons = [];
-    for ( var i = 0; i < 10; i++){
 
-      suggestionbuttons.push(<ShowSuggestion
-              value = {this.state.suggestions[i]}
-              onClick={() => this.handleClick(i)}
-              />);
-    };
+    for ( var i = 0; i < this.state.suggestionnames.length; i++){
+      suggestionbuttons = this.state.suggestionnames.map(station =>
+          <Button className="Button" variant="light" block
+            onClick={() => this.handleClick(station)} key={station}>
+              {station}
+          </Button>);
+      };
+
     return(suggestionbuttons);
   };
 
@@ -142,7 +139,7 @@ class SearchBar extends React.Component{
     var trainstoshow = [];
     var trains = [];
 
-    if ( type == "ar"){
+    if ( type === "ar"){
       trains = this.state.stationTrainsArrival;
     }else{
       trains = this.state.stationTrainsDeparture
@@ -150,33 +147,24 @@ class SearchBar extends React.Component{
     for ( var i = 0; i < 10; i++){
       trainstoshow.push(<ShowTrains
         value = {trains[i]}
+        key = {i}
       />);
     };
     return trainstoshow;
   };
 
-  /*renderArrival(i){
+  getArrivingAndDeparting( station ){
 
-    return(<ShowTrains
-            value = {this.state.stationTrainsArrival[i]}
-            />
-        );
-  }
-  renderDeparture(i){
-    return(<ShowTrains
-            value = {this.state.stationTrainsDeparture[i]}
-            />
-        );
-  }*/
+    var istationShortCode = this.state.suggestions.find( obj => {
+      return obj.stationName === station;
+    });
 
-
-  getArrivingAndDeparting( i ){
-
-    var istationShortCode = this.state.suggestions[i].stationShortCode;
+    istationShortCode = istationShortCode.stationShortCode;
     var codetoname = this.state.stationsshortcodetoname;
 
     var jsonrequest = {"query":"{ viewer { \
-          getStationsTrainsUsingGET(station:\"" + istationShortCode + "\", arriving_trains:20, departing_trains:20, include_nonstopping:false) { \
+          getStationsTrainsUsingGET(station:\"" + istationShortCode + "\", \
+          arriving_trains:20, departing_trains:20, include_nonstopping:false) { \
             trainNumber \
             trainType \
             timeTableRows { \
@@ -213,16 +201,16 @@ class SearchBar extends React.Component{
 
             timeTableRows.forEach(function(station_stats){
 
-              if ( station_stats.liveEstimateTime == undefined){
+              if ( station_stats.liveEstimateTime === undefined){
                 a = new Date(station_stats.scheduledTime);
               }else{
                 a = new Date(station_stats.liveEstimateTime);
               };
 
               if ( station_stats.stationShortCode === istationShortCode &&
-
                 a.getTime() > d.getTime()){
 
+                console.log(station_stats);
                 if ( station_stats.type === "ARRIVAL"){
 
                   thisStationTrains.push({"scheduledTime": a,
@@ -245,7 +233,8 @@ class SearchBar extends React.Component{
             })
 
           });
-
+          console.log(thisStationTrains);
+          console.log(thisStationTrainsDeparture);
           function compare(a,b){
             if ( a.scheduledTime < b.scheduledTime){
               return -1;
@@ -274,68 +263,62 @@ class SearchBar extends React.Component{
   }
 
 
-  handleClick(i){
-    if (this.state.suggestions[i] !== null ){
-      this.filterTextInput.value = this.state.suggestions[i].stationName;
-    }
+  handleClick(station){
 
-    this.getArrivingAndDeparting(i);
+    this.getArrivingAndDeparting(station);
     this.setState({
-      suggestions: Array(10).fill(null),
-      isCitySelected: true
+      suggestions: [],
+      suggestionnames: [],
+      selectedCity: station,
     })
 
   }
 
   render() {
-
     return(
       <div>
-        <div className = "Search-Bar" >
-          <div>
-            <form onChange = { this.handleChange }>
-              <input
-                className = "SearchBox"
-                placeholder = "Etsi asema"
-                type = "text"
-                name = "textsearch"
-                ref = {node => (this.filterTextInput = node)}
-                />
-            </form>
-          </div>
-        </div>
-        <div className="suggestions">
-              {this.rendersuggestion()}
-        </div>
 
-        <Table striped bordered hover>
-              <thead>
-                <tr>
-                  <th>Juna</th>
-                  <th>Lähtöasema</th>
-                  <th>Pääteasema</th>
-                  <th>Aika</th>
-                </tr>
-              </thead>
-              <tbody>
-                {this.rendertrainschedules("ar")}
-              </tbody>
-            </Table>
-            <Table  striped bordered hover>
-              <thead>
-                <tr>
-                  <th>Juna</th>
-                  <th>Lähtöasema</th>
-                  <th>Pääteasema</th>
-                  <th>Aika</th>
-                </tr>
-              </thead>
-              <tbody>
-                {this.rendertrainschedules("de")}
-              </tbody>
-            </Table>
-        </div>
+        <Form className = "SearchBar" onChange = { this.handleChange }>
+          <input
+            className = "SearchBox"
+            placeholder = "Etsi asema"
+            type = "text"
+            name = "textsearch"
+            ref = {node => (this.filterTextInput = node)}
+            />
+        </Form>
 
+        <ButtonGroup vertical className="Suggestions">{ this.rendersuggestion() }</ButtonGroup>
+
+        <div className="City">{this.state.selectedCity}</div>
+
+        <Table className="Results" striped bordered hover>
+          <thead>
+            <tr>
+              <th>Juna</th>
+              <th>Lähtöasema</th>
+              <th>Pääteasema</th>
+              <th>Aika</th>
+            </tr>
+          </thead>
+          <tbody>
+            {this.rendertrainschedules("ar")}
+          </tbody>
+        </Table>
+        <Table className="Results" striped bordered hover>
+          <thead>
+            <tr>
+              <th>Juna</th>
+              <th>Lähtöasema</th>
+              <th>Pääteasema</th>
+              <th>Aika</th>
+            </tr>
+          </thead>
+          <tbody>
+            {this.rendertrainschedules("de")}
+          </tbody>
+        </Table>
+      </div>
     )
   }
 };

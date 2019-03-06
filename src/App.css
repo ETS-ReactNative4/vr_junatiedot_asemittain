@@ -1,111 +1,53 @@
-.App {
-  text-align: left;
-}
 
-.flex-container {
-  display: flex;
-  flex-wrap: wrap;
-  width: 800px;
-  padding: 5px;
-}
-
-.flex-item {
-  background: gainsboro;
-  width: 150px;
-  padding: 10px;
-  margin-right: 10px;
-  font-size: 15px;
-  text-align: center;
-}
-
-.flex-info {
-  width: 150px;
-  padding: 10px;
-  margin-right: 10px;
-  font-size: 20px;
-  text-align: center;
-  text-decoration: underline;
-}
-
-.timetableheader {
-  background-color: green;
-  text-align: center;
-  width: 700px;
-  padding: 5px;
-  font-size: 25px;
-  font-weight: bold;
-  color: white;
-}
-
-.schedules {
-  bordered: true;
-}
-
-.suggestions {
+.Suggestions {
   position: absolute;
+  padding-left: 5px;
+  width: 200px;
 }
 
 .App-header {
   background-color: green;
   height: 50px;
-  padding: 10px;
+  padding-left: 10px;
   color: white;
 }
-.TrainRow{
-  clear: both;
-  display: table;
-  width: 600px;
-  text-align: left;
-  padding: 6px;
-}
-.Train{
-  float: left;
-  width: 150px;
-  text-align: center;
-}
-.Start{
-  float: left;
-  width: 150px;
-  text-align: center;
-}
-.End{
-  float: left;
-  width: 150px;
-  text-align: center;
-}
-.Time{
-  float: left;
-  width: 150px;
-  text-align: center;
-}
-.Suggestionbox {
-  clear: both;
-  background: #fff;
-  border: 1px solid #999;
-  float: left;
-  font-size: 24px;
-  line-height: 34px;
-  margin-right: -1px;
-  margin-top: -1px;
-  padding: 0;
-  text-align: left;
-  width: 204px;
-  height: 34px;
-}
 
-.App-intro {
-  font-size: large;
-}
-
-
-.Search-Bar {
-  padding: 10px;
+.SearchBar {
+  padding-left: 5px;
+  padding-right: 5px;
+  padding-top: 5px;
+  width: 300px
 }
 
 .SearchBox {
-  border: 3px solid #999;
+  border: 2px solid #999;
   font-size: 24px;
   text-align: left;
-  width: 200px;
+  width: 195px;
   height: 34px;
+  padding: 5px;
+}
+
+.Button {
+  border-left: 2px solid #999;
+  border-right: 2px solid #999;
+  border-top: 1px solid #999;
+  border-bottom: 1px solid #999;
+  font-size: 20px;
+  text-align: left;
+  width: 400px;
+  height: 34px;
+  padding-left: 5px;
+  padding-bottom: 40px;
+  margin-top: 1px;
+  margin-bottom: 1px;
+}
+
+.City {
+  text-align: center;
+  font-size: 30px;
+}
+
+.Results{
+  margin-left: 5px;
 }
