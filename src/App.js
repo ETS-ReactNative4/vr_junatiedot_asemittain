@@ -5,16 +5,13 @@ import { Button } from "react-bootstrap";
 import { ButtonGroup } from "react-bootstrap";
 import { Form } from "react-bootstrap";
 
-const xhr = new XMLHttpRequest();
-
-
 
 class App extends Component {
   render() {
     return (
       <div className="App">
         <header className="App-header">
-          <h1>Aseman junatiedot</h1>
+          <h1>Aseman aikataulu</h1>
         </header>
         <SearchBar/>
       </div>
@@ -36,11 +33,11 @@ function ShowTrains(props){
     }
 
     return(
-      <tr>
-        <td>{props.value.train}</td>
-        <td>{props.value.startingStation}</td>
-        <td>{props.value.endingStation}</td>
-        <td>{d.getHours() + ":" + minutes}</td>
+      <tr className="TrainInfo">
+        <th className="TrainType">{props.value.train}</th>
+        <th className="TrainInfoRow">{props.value.startingStation}</th>
+        <th className="TrainInfoRow">{props.value.endingStation}</th>
+        <th className="Time">{d.getHours() + ":" + minutes}</th>
       </tr>
     );
   }else{
@@ -56,14 +53,15 @@ class SearchBar extends React.Component{
 
   constructor(props) {
     super(props);
-
     this.handleChange = this.handleChange.bind(this);
+    this.resultsElement = React.createRef();
+
     this.state = {
       suggestions: [],
       suggestionnames: [],
       stations: {},
       stationsshortcodetoname: {},
-      selectedCity: "Station not selected.",
+      selectedCity: "Asemaa ei ole valittu.",
       stationTrainsArrival: {},
       stationTrainsDeparture: {},
     }
@@ -162,8 +160,13 @@ class SearchBar extends React.Component{
     istationShortCode = istationShortCode.stationShortCode;
     var codetoname = this.state.stationsshortcodetoname;
 
+    var thisStationTrains = [];
+    var thisStationTrainsDeparture = [];
+    var d = new Date();
+    var a = new Date();
+
     var jsonrequest = {"query":"{ viewer { \
-          getStationsTrainsUsingGET(station:\"" + istationShortCode + "\", \
+        getStationsTrainsUsingGET(station:\"" + istationShortCode + "\", \
           arriving_trains:20, departing_trains:20, include_nonstopping:false) { \
             trainNumber \
             trainType \
@@ -179,85 +182,74 @@ class SearchBar extends React.Component{
         } \
       }"};
 
-    jsonrequest = JSON.stringify(jsonrequest);
-    const graphql_url = "https://rata.digitraffic.fi/api/v1/graphql/graphiql/?";
-    xhr.open('POST', graphql_url, false);
-    xhr.setRequestHeader("Content-Type", "application/json");
+    fetch("https://rata.digitraffic.fi/api/v1/graphql/graphiql/?", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(jsonrequest)})
+      .then(response => response.json())
+      .then(state => {
 
-    var thisStationTrains = [];
-    var thisStationTrainsDeparture = [];
-    var d = new Date();
-    var a = new Date();
+          state.data.viewer.getStationsTrainsUsingGET.forEach(function(element){
 
-    xhr.onreadystatechange = function() {
+              var timeTableRows = element.timeTableRows;
 
-      if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+              timeTableRows.forEach(function(station_stats){
 
-        var responsetrains = JSON.parse(this.responseText);
+                if ( station_stats.liveEstimateTime === null){
+                  a = new Date(station_stats.scheduledTime);
+                }else{
+                  a = new Date(station_stats.liveEstimateTime);
+                };
 
-        responsetrains.data.viewer.getStationsTrainsUsingGET.forEach(function(element){
+                if ( station_stats.stationShortCode === istationShortCode &&
+                  a.getTime() > d.getTime()){
 
-            var timeTableRows = element.timeTableRows;
+                  if ( station_stats.type === "ARRIVAL"){
 
-            timeTableRows.forEach(function(station_stats){
+                    thisStationTrains.push({"scheduledTime": a,
+                      "train": element.trainType + " " + element.trainNumber,
+                      "startingStation": codetoname[timeTableRows[0].stationShortCode],
+                      "endingStation": codetoname[timeTableRows[ timeTableRows.length -1 ].stationShortCode]} );
 
-              if ( station_stats.liveEstimateTime === undefined){
-                a = new Date(station_stats.scheduledTime);
-              }else{
-                a = new Date(station_stats.liveEstimateTime);
+                  }
+
+                  if ( station_stats.type === "DEPARTURE" ){
+                    thisStationTrainsDeparture.push({"scheduledTime": a,
+                      "train": element.trainType + " " + element.trainNumber,
+                      "startingStation": codetoname[timeTableRows[0].stationShortCode],
+                      "endingStation": codetoname[timeTableRows[ timeTableRows.length -1 ].stationShortCode]});
+                  }
+
+                }
+
+              })
+
+            });
+            function compare(a,b){
+              if ( a.scheduledTime < b.scheduledTime){
+                return -1;
               };
-
-              if ( station_stats.stationShortCode === istationShortCode &&
-                a.getTime() > d.getTime()){
-
-                console.log(station_stats);
-                if ( station_stats.type === "ARRIVAL"){
-
-                  thisStationTrains.push({"scheduledTime": a,
-                    "train": element.trainType + " " + element.trainNumber,
-                    "startingStation": codetoname[timeTableRows[0].stationShortCode],
-                    "endingStation": codetoname[timeTableRows[ timeTableRows.length -1 ].stationShortCode]} );
-
-                }
-
-                if ( station_stats.type === "DEPARTURE" ){
-
-                  thisStationTrainsDeparture.push({"scheduledTime": a,
-                    "train": element.trainType + " " + element.trainNumber,
-                    "startingStation": codetoname[timeTableRows[0].stationShortCode],
-                    "endingStation": codetoname[timeTableRows[ timeTableRows.length -1 ].stationShortCode]});
-                }
-
-              }
-
-            })
-
-          });
-          console.log(thisStationTrains);
-          console.log(thisStationTrainsDeparture);
-          function compare(a,b){
-            if ( a.scheduledTime < b.scheduledTime){
-              return -1;
+              if (a.scheduledTime > b.scheduledTime){
+                return 1;
+              };
+              return 0;
             };
-            if (a.scheduledTime > b.scheduledTime){
-              return 1;
-            };
-            return 0;
-          };
 
-          thisStationTrains.sort(compare);
-          thisStationTrains.splice(10,thisStationTrains.length - 1);
-          thisStationTrainsDeparture.sort(compare);
-          thisStationTrainsDeparture.splice(10,thisStationTrainsDeparture.length - 1);
+            thisStationTrains.sort(compare);
+            thisStationTrains.splice(10,thisStationTrains.length - 1);
+            thisStationTrainsDeparture.sort(compare);
+            thisStationTrainsDeparture.splice(10,thisStationTrainsDeparture.length - 1);
 
-      };
-    };
+            this.setState({
+              stationTrainsArrival: thisStationTrains,
+              stationTrainsDeparture: thisStationTrainsDeparture
+            });
 
-    xhr.send(jsonrequest);
-    this.setState({
-      stationTrainsArrival: thisStationTrains,
-      stationTrainsDeparture: thisStationTrainsDeparture
-    });
+        });
+
 
 
   }
@@ -291,20 +283,19 @@ class SearchBar extends React.Component{
         <ButtonGroup vertical className="Suggestions">{ this.rendersuggestion() }</ButtonGroup>
 
         <div className="City">{this.state.selectedCity}</div>
-
+        <div className="scheduletype">Saapuvat:</div>
         <Table className="Results" striped bordered hover>
           <thead>
-            <tr>
+            <tr className="Info">
               <th>Juna</th>
               <th>Lähtöasema</th>
               <th>Pääteasema</th>
               <th>Aika</th>
             </tr>
           </thead>
-          <tbody>
-            {this.rendertrainschedules("ar")}
-          </tbody>
+          <tbody>{this.rendertrainschedules("ar")}</tbody>
         </Table>
+        <div className="scheduletype">Lähtevät:</div>
         <Table className="Results" striped bordered hover>
           <thead>
             <tr>
@@ -314,9 +305,7 @@ class SearchBar extends React.Component{
               <th>Aika</th>
             </tr>
           </thead>
-          <tbody>
-            {this.rendertrainschedules("de")}
-          </tbody>
+          <tbody>{this.rendertrainschedules("de")}</tbody>
         </Table>
       </div>
     )
