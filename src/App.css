@@ -1,8 +1,6 @@
-
 .Suggestions {
   position: absolute;
-  padding-left: 5px;
-  width: 200px;
+  width: 300px;
 }
 
 .App-header {
@@ -13,33 +11,26 @@
   color: white;
 }
 
-.SearchBar {
-  padding-left: 5px;
-  padding-right: 5px;
-  padding-top: 5px;
-  width: 300px
-}
-
 .SearchBox {
   border: 2px solid #999;
   font-size: 24px;
   text-align: left;
-  width: 195px;
-  height: 34px;
+  width: 300px;
+  height: 40px;
   padding: 5px;
 }
 
 .Button {
+  top: -1px;
+  border-top: 1px solid #999;
   border-left: 2px solid #999;
   border-right: 2px solid #999;
-  border-top: 2px solid #999;
   border-bottom: 2px solid #999;
-  font-size: 20px;
+  font-size: 24px;
   text-align: left;
-  width: 400px;
-  height: 34px;
+  height: 40px;
   padding-left: 5px;
-  padding-bottom: 40px;
+  padding-top: 0px;
   border-radius: 0;
 }
 
@@ -49,15 +40,18 @@
   text-decoration: underline;
 }
 
+.ResultContainer{
+  padding: 5px;
+}
+
 .Results{
-  margin: 5px;
+  margin: 0px;
   flex-direction: column;
   justify-content: center;
   align-items: center;
 }
 
 .scheduletype {
-  margin-left: 5px;
   text-align: left;
   font-size: 25px;
 }
